@@ -1,0 +1,73 @@
+name: Bug report
+description: A transfer, reply, listing, or screen that does not match the lab.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe what the lab did and what you expected. Leave out passwords, JWTs, packet captures, and files from someone else's sandbox. Reports that include those belong with the course staff, as described in SECURITY.md.
+
+  - type: checkboxes
+    id: safe-to-publish
+    attributes:
+      label: Safe to publish
+      options:
+        - label: This report has no password, token, capture, or another account's files.
+          required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - TCP file service (port 2121)
+        - Control plane (port 8000)
+        - Web UI (port 3000)
+        - Progress socket (/ws/transfers)
+        - Docs
+    validations:
+      required: true
+
+  - type: textarea
+    id: observed
+    attributes:
+      label: What happened
+      description: Name the command, route, or screen, and the reply or error you actually got.
+      placeholder: STOR my notes.bin returned 501, and the file never appeared in GET /api/files.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: Point at the README or architecture note when the expected behavior is already written down.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to see it again
+      description: Say which of the three processes were running, the account you used (not the password), the filename and size, and whether you used the UI or the interactive client.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: processes
+    attributes:
+      label: Processes that were up
+      multiple: true
+      options:
+        - TCP server on 2121
+        - FastAPI on 8000
+        - Web app on 3000
+        - Interactive client only
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Reply or log excerpt
+      description: Paste a short excerpt with AUTH lines and Authorization headers removed.
+      render: text

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="160" viewBox="0 0 920 160" role="img" aria-labelledby="heroTitle heroDesc">
+  <title id="heroTitle">NetTransfer</title>
+  <desc id="heroDesc">The favicon tile on the left. Its cyan lead leaves the tile and runs into the wordmark.</desc>
+  <rect width="920" height="160" rx="16" fill="#f3f6f7"/>
+  <radialGradient id="wash" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(28 12) scale(380 200)">
+    <stop offset="0" stop-color="#d5f4f6"/>
+    <stop offset="1" stop-color="#f3f6f7" stop-opacity="0"/>
+  </radialGradient>
+  <rect width="920" height="160" rx="16" fill="url(#wash)"/>
+  <rect x="0.5" y="0.5" width="919" height="159" rx="16" fill="none" stroke="#d7e0e2"/>
+  <g transform="translate(44 44) scale(2.5)">
+    <rect width="32" height="32" rx="8" fill="#12141a"/>
+    <path d="M5.5 16H12" stroke="#7eebf2" stroke-width="2.2" stroke-linecap="round"/>
+    <rect x="13.2" y="11.5" width="5.6" height="9" rx="1.4" fill="#7eebf2"/>
+    <path d="M20 16H26.5" stroke="#7eebf2" stroke-width="2.2" stroke-linecap="round"/>
+  </g>
+  <path d="M110.25 84H164" stroke="#7eebf2" stroke-width="5.5" stroke-linecap="round"/>
+  <text x="184" y="98" fill="#12141a" font-family="Segoe UI, ui-sans-serif, sans-serif" font-size="40" font-weight="600" letter-spacing="-0.6">NetTransfer</text>
+  <text x="186" y="126" fill="#5c6570" font-family="Cascadia Mono, ui-monospace, monospace" font-size="15">two sockets, one sandbox</text>
+</svg>

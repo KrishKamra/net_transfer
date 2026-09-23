@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+*.egg-info/
+dist/
+build/
+.env
+
+# Node
+node_modules/
+.env.local
+
+# Databases and runtime files
+storage/files/*
+storage/users/*
+!storage/files/.gitkeep
+!storage/users/.gitkeep
+*.db
+*.sqlite3
+
+# Packet captures
+docs/packet-analysis/*.pcapng

@@ -1,0 +1,40 @@
+name: Question
+description: A question about how a command, hop, or screen is supposed to work.
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Questions about the lab are welcome. Questions that need a password, a token, or a capture answered in public are not. Read SECURITY.md first when the question is about credentials or the sandbox.
+
+  - type: checkboxes
+    id: safe-to-publish
+    attributes:
+      label: Safe to publish
+      options:
+        - label: This question has no password, token, capture, or another account's files.
+          required: true
+
+  - type: dropdown
+    id: topic
+    attributes:
+      label: Topic
+      options:
+        - STOR or RETR framing
+        - Accounts, passwords, or tokens
+        - Sandbox paths
+        - Web UI or live progress
+        - Running the three processes
+        - Wireshark capture
+        - Something else
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: Say what you already read (README, architecture.md, or a reply code) and where you are stuck.
+    validations:
+      required: true

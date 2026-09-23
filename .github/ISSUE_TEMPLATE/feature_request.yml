@@ -1,0 +1,45 @@
+name: Change request
+description: A lab behavior you want added or adjusted, without turning the project into a different product.
+title: "[Change]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        NetTransfer is a course lab. A change should keep the TCP session, the control plane, and the UI describing the same transfer. TLS, a production secret store, and anything that would hide AUTH, STOR, or RETR from a loopback capture are out of scope unless the course asks for them.
+
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Behavior you want
+      description: Say what a person can do after the change that they cannot do now.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where it lives
+      options:
+        - TCP file service (port 2121)
+        - Control plane (port 8000)
+        - Web UI (port 3000)
+        - Progress socket (/ws/transfers)
+        - Docs
+    validations:
+      required: true
+
+  - type: textarea
+    id: stays
+    attributes:
+      label: What must stay the same
+      description: Call out framing, reply codes, the account sandbox, or cleartext on the wire when those are involved.
+      placeholder: RETR still sends an 8-byte big-endian length before the payload.
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why this belongs in the lab
+      description: Tie it to a milestone, a broken check, or a step that is hard to explain in a demo.
+    validations:
+      required: true
