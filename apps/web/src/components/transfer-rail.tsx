@@ -39,7 +39,7 @@ export function TransferRail({
       <p className="sr-only" aria-live="polite">
         {announcement}
       </p>
-      <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-line px-4">
+      <header className="nt-mast flex shrink-0 items-center justify-between gap-3 border-b border-line px-4">
         <div className="flex min-w-0 items-center gap-2">
           <h2 className="text-[13px] font-medium">Transfers</h2>
           <p className="font-mono text-[12px] text-muted">{active === 0 ? 'Idle' : `${active} active`}</p>

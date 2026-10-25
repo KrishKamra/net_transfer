@@ -2,13 +2,20 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, deleteFile, endSession, isAbortError, listFiles, transferHistory } from '../lib/api'
 import { clearSession } from '../lib/session'
 import type { FileItem, HistoryRecord, Session } from '../types'
+import { useTelemetrySocket } from '../hooks/use-telemetry-socket'
 import { useTransferQueue } from '../hooks/use-transfer-queue'
+import { ProtocolInspector } from '../pages/protocol-inspector'
 import { Button } from './button'
 import { CommandPalette, type Command } from './command-palette'
 import { FileExplorer } from './file-explorer'
 import { LinkLight, type LinkState } from './link-light'
 import { Logo } from './logo'
+import { ModeSwitch, SocketBeacon, type Mode } from './mode-switch'
 import { TransferRail } from './transfer-rail'
+
+function modeFromHash(): Mode {
+  return window.location.hash === '#inspector' ? 'inspector' : 'files'
+}
 
 type Props = {
   session: Session
@@ -25,7 +32,23 @@ export function Workspace({ session, onLogout }: Props) {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [focusToken, setFocusToken] = useState(0)
   const [uploadToken, setUploadToken] = useState(0)
+  const [mode, setModeState] = useState<Mode>(modeFromHash)
   const refreshGeneration = useRef(0)
+
+  // The mode lives in the URL hash so a reload or a shared link keeps it.
+  const setMode = useCallback((next: Mode) => {
+    setModeState(next)
+    const hash = next === 'inspector' ? '#inspector' : ''
+    if (window.location.hash !== hash) {
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${hash}`)
+    }
+  }, [])
+
+  useEffect(() => {
+    const onHash = () => setModeState(modeFromHash())
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
 
   const refresh = useCallback(async () => {
     const generation = ++refreshGeneration.current
@@ -63,6 +86,12 @@ export function Workspace({ session, onLogout }: Props) {
   }, [session, onLogout])
 
   const transfers = useTransferQueue(session, () => void refresh(), onLogout)
+  // Open for the whole session so traffic from the file manager is already
+  // buffered when the inspector opens.
+  const telemetry = useTelemetrySocket(session)
+  const activeTransfers = transfers.jobs.filter(
+    (job) => job.status === 'QUEUED' || job.status === 'TRANSFERRING',
+  ).length
 
   useEffect(() => {
     void refresh()
@@ -72,8 +101,8 @@ export function Workspace({ session, onLogout }: Props) {
   }, [refresh])
 
   useEffect(() => {
-    document.title = `NetTransfer · ${session.username}`
-  }, [session.username])
+    document.title = mode === 'inspector' ? `Inspector · NetTransfer` : `NetTransfer · ${session.username}`
+  }, [session.username, mode])
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -89,7 +118,18 @@ export function Workspace({ session, onLogout }: Props) {
   const link: LinkState = files !== null ? 'ready' : filesError ? 'down' : 'checking'
   const shortcut = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘K' : 'Ctrl K'
   const commands: Command[] = [
-    { id: 'upload', label: 'Upload files', hint: 'STOR', run: () => setUploadToken((value) => value + 1) },
+    mode === 'files'
+      ? { id: 'inspector', label: 'Open protocol inspector', hint: 'Live', run: () => setMode('inspector') }
+      : { id: 'files', label: 'Open file manager', hint: 'Files', run: () => setMode('files') },
+    {
+      id: 'upload',
+      label: 'Upload files',
+      hint: 'STOR',
+      run: () => {
+        setMode('files')
+        setUploadToken((value) => value + 1)
+      },
+    },
     { id: 'refresh', label: 'Refresh sandbox', hint: 'LIST', run: () => void refresh() },
     { id: 'filter', label: 'Filter files', hint: 'Name', run: () => setFocusToken((value) => value + 1) },
     { id: 'signout', label: 'Sign out', hint: session.username, run: logout },
@@ -122,18 +162,21 @@ export function Workspace({ session, onLogout }: Props) {
 
   return (
     <div className="flex min-h-dvh flex-col bg-surface lg:h-dvh">
-      <header className="nt-chrome flex h-12 shrink-0 items-center justify-between gap-4 px-4">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <Logo size={22} />
-          <p className="text-[14px] font-medium tracking-[-0.02em]">NetTransfer</p>
-          <span className="mx-1 hidden h-3 w-px bg-line sm:block" aria-hidden="true" />
-          <span className="hidden sm:inline-flex">
-            <LinkLight state={link} />
-          </span>
+      <header className="nt-chrome flex h-14 shrink-0 items-center justify-between gap-4 px-4 sm:px-5">
+        <div className="flex min-w-0 items-center gap-3 lg:w-[240px]">
+          <Logo size={26} />
+          <div className="min-w-0">
+            <p className="text-[15px] leading-none font-medium tracking-[-0.03em]">NetTransfer</p>
+            <div className="mt-1">
+              <LinkLight state={link} />
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          <p className="px-2 font-mono text-[12px]">{session.username}</p>
-          <Button variant="ghost" onClick={() => setPaletteOpen(true)} title="Open commands">
+        <ModeSwitch mode={mode} activeTransfers={activeTransfers} onChange={setMode} />
+        <div className="flex items-center justify-end gap-1.5 lg:w-[240px] lg:shrink-0 xl:w-auto">
+          <SocketBeacon state={telemetry.state} tapAttached={telemetry.tapAttached} />
+          <p className="nt-account hidden font-mono text-[12px] sm:block">{session.username}</p>
+          <Button variant="ghost" className="hidden sm:inline-flex" onClick={() => setPaletteOpen(true)} title="Open commands">
             <span className="font-mono text-[11px] text-muted">{shortcut}</span>
           </Button>
           <Button variant="ghost" onClick={logout}>
@@ -142,7 +185,18 @@ export function Workspace({ session, onLogout }: Props) {
         </div>
       </header>
 
-      <main className="flex min-h-0 flex-1 flex-col lg:flex-row">
+      {mode === 'inspector' ? (
+        <main className="flex min-h-0 flex-1 flex-col">
+          <ProtocolInspector
+            telemetry={telemetry}
+            onUpload={transfers.uploadFiles}
+            onOpenFiles={() => setMode('files')}
+          />
+        </main>
+      ) : null}
+
+      {/* Kept mounted while hidden so the filter and upload picker keep their state. */}
+      <main className="flex min-h-0 flex-1 flex-col lg:flex-row" hidden={mode !== 'files'}>
         <FileExplorer
           username={session.username}
           files={files}

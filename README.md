@@ -206,11 +206,31 @@ Usernames are stored in lowercase and must be at least 3 characters. Passwords m
 - Transfer cards: bytes, speed, ETA, and queued / transferring / completed / failed / cancelled
 - Command list on Ctrl K
 - A link light for the control plane, and a separate light for the progress socket
+- A **Protocol inspector** mode (top bar, or `#inspector` in the URL) that shows real port-2121 traffic as it happens
 
 ```text
 cd apps/web
 pnpm build
 ```
+
+### Protocol inspector
+
+Every frame the TCP server reads or writes is reported as a telemetry event: the accepted connection, each newline-framed command and reply, the 8-byte `RETR` length prefix, every 64 KB payload chunk, and the close. Nothing is simulated. An idle page shows nothing.
+
+```mermaid
+flowchart LR
+  TCP["TCP server :2121<br/>ConnectionTap per socket"] -->|"NDJSON, loopback :2199"| Hub["Control plane<br/>TelemetryHub"]
+  Hub -->|"/ws/telemetry"| UI["Inspector"]
+```
+
+The TCP server and the control plane are separate processes. The TCP server sends events from a background thread to `127.0.0.1:2199`, and the control plane feeds them into a thread-safe hub, then to `/ws/telemetry`. The link is best-effort and never blocks a transfer. Start order does not matter, because the TCP server reconnects every second. The top-bar beacon reads **Live socket** once both hops are up.
+
+- **Ladder**: client and server lanes, colour-coded packets, and one live row per `STOR` / `RETR` stream. Expand a row to see its chunks.
+- **Wireshark**: `No.`, `Time`, `Source`, `Destination`, `Protocol`, `Length`, `Info`, for side-by-side comparison with a real capture. `Length` is `tcp.len`.
+- **Frame**: hex and ASCII, sizes, Δt, and how the stream was framed (delimiter, length prefix, or size announced in `STOR`).
+- **Telemetry**: bytes each way, socket lifetime, rolling MB/s, frame mix.
+
+Each browser only receives events for the signed-in account, and the server replays the last 100 on connect. Events from a socket that never authenticates are dropped. `AUTH` passwords are masked in the inspector, though they still cross port 2121 in cleartext. Set `NETTRANSFER_TELEMETRY=0` to turn the feed off, or `NETTRANSFER_TELEMETRY_PORT` to move the loopback port.
 
 `pnpm preview` serves `dist` without the dev proxy. API calls then need the control plane on the same origin, or a proxy of your own.
 

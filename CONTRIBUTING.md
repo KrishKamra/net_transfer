@@ -94,7 +94,7 @@ Server tests, from `apps/server`:
 uv run pytest
 ```
 
-Pytest is configured. The `tests` directory does not have cases yet. A change to framing, auth, or the sandbox should add a test there rather than only a manual session.
+Pytest is configured. `tests/test_telemetry.py` runs a real TCP server on an ephemeral port against a throwaway database. A change to framing, auth, the sandbox, or telemetry should add a test there rather than only a manual session.
 
 Before you call a transfer done, exercise it on the real sockets: TCP server, control plane, and either the CLI or the UI. An upload that never appears in `GET /api/files` means the two processes are not sharing `USER_STORAGE_DIR`.
 

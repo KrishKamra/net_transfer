@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Windows Dev Setup — Python, Node.js, Git & VS Code</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d27;
+    --card-hover: #222632;
+    --border: #2d3348;
+    --text: #e6e8ef;
+    --muted: #8b92a8;
+    --accent: #5b8def;
+    --accent-hover: #7aa3f5;
+    --success: #3dd68c;
+    --warning: #f5a623;
+    --code-bg: #12151c;
+    --radius: 12px;
+    --shadow: 0 4px 24px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 2rem 1rem 4rem;
+  }
+  .container { max-width: 920px; margin: 0 auto; }
+  header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+  header h1 {
+    font-size: 2.1rem;
+    font-weight: 700;
+    background: linear-gradient(90deg, #5b8def, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  header p { color: var(--muted); margin-top: .5rem; font-size: 1.05rem; }
+  .progress-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.75rem;
+    box-shadow: var(--shadow);
+  }
+  .progress-label { font-size: .9rem; color: var(--muted); margin-bottom: .4rem; display: flex; justify-content: space-between; }
+  .progress-bar {
+    height: 8px;
+    background: #2a2f40;
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent), #a78bfa);
+    border-radius: 99px;
+    transition: width .4s ease;
+  }
+  .section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 1.25rem;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: 1.1rem 1.25rem;
+    cursor: pointer;
+    user-select: none;
+    transition: background .15s;
+  }
+  .section-header:hover { background: var(--card-hover); }
+  .section-header h2 { font-size: 1.15rem; font-weight: 600; flex: 1; }
+  .badge {
+    font-size: .75rem;
+    padding: .2rem .55rem;
+    border-radius: 99px;
+    background: #2a3148;
+    color: var(--muted);
+  }
+  .chevron { transition: transform .2s; color: var(--muted); }
+  .section.open .chevron { transform: rotate(180deg); }
+  .section-body {
+    display: none;
+    padding: 0 1.25rem 1.25rem;
+    border-top: 1px solid var(--border);
+  }
+  .section.open .section-body { display: block; }
+  .step {
+    display: flex;
+    gap: .85rem;
+    padding: .85rem 0;
+    border-bottom: 1px solid #252a3a;
+  }
+  .step:last-child { border-bottom: none; }
+  .step input[type="checkbox"] {
+    width: 1.15rem;
+    height: 1.15rem;
+    margin-top: .25rem;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .step-content { flex: 1; }
+  .step-content h3 { font-size: 1rem; font-weight: 600; margin-bottom: .25rem; }
+  .step-content p { color: var(--muted); font-size: .92rem; margin-bottom: .5rem; }
+  .cmd-box {
+    position: relative;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: .75rem 3.2rem .75rem .9rem;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: .85rem;
+    line-height: 1.5;
+    color: #c9d1d9;
+    margin: .4rem 0 .6rem;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .copy-btn {
+    position: absolute;
+    top: .45rem;
+    right: .45rem;
+    background: #2d3348;
+    border: none;
+    color: var(--text);
+    padding: .3rem .55rem;
+    border-radius: 6px;
+    font-size: .75rem;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .copy-btn:hover { background: var(--accent); }
+  .copy-btn.copied { background: var(--success); color: #000; }
+  .note {
+    background: #1e2436;
+    border-left: 3px solid var(--warning);
+    padding: .65rem .85rem;
+    border-radius: 0 6px 6px 0;
+    font-size: .88rem;
+    color: #d4d8e6;
+    margin: .5rem 0;
+  }
+  .success-note {
+    border-left-color: var(--success);
+  }
+  ul { margin: .4rem 0 .6rem 1.2rem; color: var(--muted); font-size: .92rem; }
+  li { margin-bottom: .25rem; }
+  .ext-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: .65rem;
+    margin: .6rem 0;
+  }
+  .ext-card {
+    background: #161922;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: .7rem .8rem;
+    font-size: .88rem;
+  }
+  .ext-card strong { display: block; margin-bottom: .15rem; }
+  .ext-card code { color: var(--accent); font-size: .8rem; }
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: .85rem;
+    margin-top: 2.5rem;
+  }
+  @media (max-width: 600px) {
+    body { padding: 1rem .75rem 3rem; }
+    header h1 { font-size: 1.6rem; }
+    .ext-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Windows Dev Environment Setup</h1>
+    <p>Interactive guide for a fresh Windows install — VS Code, Git, Python & Node.js</p>
+  </header>
+
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span>Setup Progress</span>
+      <span id="progressText">0 / 0</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+
+  <!-- Prerequisites -->
+  <div class="section open" data-section="prereq">
+    <div class="section-header">
+      <h2>0. Prerequisites</h2>
+      <span class="badge">Start here</span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="step">
+        <input type="checkbox" data-id="prereq-winget">
+        <div class="step-content">
+          <h3>Verify winget is available</h3>
+          <p>Open <strong>Windows Terminal</strong> or PowerShell and run:</p>
+          <div class="cmd-box">winget --version<span class="copy-btn">Copy</span></div>
+          <div class="note">If the command is not recognized, open the Microsoft Store and install or update <strong>App Installer</strong>.</div>
+        </div>
+      </div>
+      <div class="step">
+        <input type="checkbox" data-id="prereq-admin">
+        <div class="step-content">
+          <h3>Run terminal as Administrator (recommended)</h3>
+          <p>Right-click Windows Terminal / PowerShell → <em>Run as administrator</em>. This avoids permission issues with machine-wide installs.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Install -->
+  <div class="section" data-section="bulk">
+    <div class="section-header">
+      <h2>1. Install All Tools (One Shot)</h2>
+      <span class="badge">Fastest</span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="step">
+        <input type="checkbox" data-id="bulk-install">
+        <div class="step-content">
+          <h3>Install VS Code, Git, Python & Node.js LTS</h3>
+          <p>Copy and paste this single command. It installs the recommended stable packages:</p>
+          <div class="cmd-box">winget install -e --id Microsoft.VisualStudioCode --accept-package-agreements --accept-source-agreements && winget install -e --id Git.Git --source winget --accept-package-agreements --accept-source-agreements && winget install -e --id Python.Python.3.12 --accept-package-agreements --accept-source-agreements && winget install -e --id OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements<span class="copy-btn">Copy</span></div>
+          <div class="note success-note">After the command finishes, <strong>close and reopen</strong> the terminal so PATH updates take effect.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Individual Installs -->
+  <div class="section" data-section="individual">
+    <div class="section-header">
+      <h2>2. Individual Installs (Optional)</h2>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="step">
+        <input type="checkbox" data-id="ind-vscode">
+        <div class="step-content">
+          <h3>Visual Studio Code</h3>
+          <div class="cmd-box">winget install -e --id Microsoft.VisualStudioCode --accept-package-agreements --accept-source-agreements<span class="copy-btn">Copy</span></div>
+        </div>
+      </div>
+      <div class="step">
+        <input type="checkbox" data-id="ind-git">
+        <div class="step-content">
+          <h3>Git</h3>
+          <div class="cmd-box">winget install -e --id Git.Git --source winget --accept-package-agreements --accept-source-agreements<span class="copy-btn">Copy</span></div>
+        </div>
+      </div>
+      <div class="step">
+        <input type="checkbox" data-id="ind-python">
+        <div class="step-content">
+          <h3>Python 3.12</h3>
+          <p>Stable, widely compatible. For the newest release you can also try <code>Python.Python.3.14</code> or install the Python Install Manager.</p>
+          <div class="cmd-box">winget install -e --id Python.Python.3.12 --accept-package-agreements --accept-source-agreements<span class="copy-btn">Copy</span></div>
+        </div>
+      </div>
+      <div class="step">
+        <input type="checkbox" data-id="ind-node">
+        <div class="step-content">
+          <h3>Node.js LTS</h3>
+          <div class="cmd-box">winget install -e --id OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements<span class="copy-btn">Copy</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Git Config -->
+  <div class="section" data-section="git">
+    <div class="section-header">
+      <h2>3. Configure Git</h2>
+      <span class="badge">Required</span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="step">
+        <input type="checkbox" data-id="git-identity">
+        <div class="step-content">
+          <h3>Set your name and email</h3>
+          <p>Replace the placeholders with your real name and email (use the email linked to your GitHub account if you plan to push there).</p>
+          <div class="cmd-box">git config --global user.name "Your Name"
+git config --global user.email "you@example.com"<span class="copy-btn">Copy</span></div>
+        </div>
+      </div>
+      <div class="step">
+        <input type="checkbox" data-id="git-defaults">
+        <div class="step-content">
+          <h3>Useful defaults</h3>
+          <div class="cmd-box">git config --global init.defaultBranch main
+git config --global core.editor "code --wait"
+git config --global pull.rebase false
+git config --global core.autocrlf true<span class="copy-btn">Copy</span></div>
+          <div class="note"><code>core.autocrlf true</code> is the recommended Windows setting so line endings stay consistent.</div>
+        </div>
+      </div>
+      <div class="step">
+        <input type="checkbox" data-id="git-verify">
+        <div class="step-content">
+          <h3>Verify configuration</h3>
+          <div class="cmd-box">git config --global --list<span class="copy-btn">Copy</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VS Code Extensions -->
+  <div class="section" data-section="extensions">
+    <div class="section-header">
+      <h2>4. VS Code Extensions</h2>
+      <span class="badge">Recommended</span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="step">
+        <input type="checkbox" data-id="ext-code-cli">
+        <div class="step-content">
+          <h3>Ensure the <code>code</code> command works</h3>
+          <p>Open VS Code once, then press <kbd>Ctrl+Shift+P</kbd> and run <strong>Shell Command: Install 'code' command in PATH</strong>. After that you can install extensions from the terminal.</p>
+          <div class="cmd-box">code --version<span class="copy-btn">Copy</span></div>
+        </div>
+      </div>
+      <div class="step">
+        <input type="checkbox" data-id="ext-python">
+        <div class="step-content">
+          <h3>Python development pack</h3>
+          <div class="cmd-box">code --install-extension ms-python.python
+code --install-extension charliermarsh.ruff
+code --install-extension ms-toolsai.jupyter
+code --install-extension ms-python.debugpy<span class="copy-btn">Copy</span></div>
+          <div class="ext-grid">
+            <div class="ext-card"><strong>Python</strong> Official language support, IntelliSense, debugging<br><code>ms-python.python</code></div>
+            <div class="ext-card"><strong>Ruff</strong> Ultra-fast linter + formatter<br><code>charliermarsh.ruff</code></div>
+            <div class="ext-card"><strong>Jupyter</strong> Notebook support<br><code>ms-toolsai.jupyter</code></div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <input type="checkbox" data-id="ext-js">
+        <div class="step-content">
+          <h3>JavaScript / Node.js essentials</h3>
+          <div class="cmd-box">code --install-extension dbaeumer.vscode-eslint
+code --install-extension esbenp.prettier-vscode
+code --install-extension formulahendry.code-runner<span class="copy-btn">Copy</span></div>
+        </div>
+      </div>
+      <div class="step">
+        <input type="checkbox" data-id="ext-git">
+        <div class="step-content">
+          <h3>Git superpowers</h3>
+          <div class="cmd-box">code --install-extension eamodio.gitlens<span class="copy-btn">Copy</span></div>
+        </div>
+      </div>
+      <div class="step">
+        <input type="checkbox" data-id="ext-themes">
+        <div class="step-content">
+          <h3>Themes & Icons (pick one or more)</h3>
+          <div class="cmd-box">code --install-extension PKief.material-icon-theme
+code --install-extension zhuangtongfa.material-theme
+code --install-extension dracula-theme.theme-dracula
+code --install-extension GitHub.github-vscode-theme<span class="copy-btn">Copy</span></div>
+          <p style="margin-top:.5rem;color:var(--muted);font-size:.9rem;">After installing, open VS Code → File → Preferences → Theme → Color Theme and pick your favorite.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PATH & Verification -->
+  <div class="section" data-section="path">
+    <div class="section-header">
+      <h2>5. PATH & Verification</h2>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="step">
+        <input type="checkbox" data-id="path-restart">
+        <div class="step-content">
+          <h3>Restart the terminal</h3>
+          <p>Close every open terminal window and open a fresh one. Most winget installers automatically add the tools to PATH.</p>
+        </div>
+      </div>
+      <div class="step">
+        <input type="checkbox" data-id="path-check">
+        <div class="step-content">
+          <h3>Verify everything is on PATH</h3>
+          <div class="cmd-box">python --version
+py --version
+node --version
+npm --version
+git --version
+code --version<span class="copy-btn">Copy</span></div>
+          <div class="note">If <code>python</code> or <code>node</code> is not recognized, search for “Environment Variables” in the Start menu, edit the user or system PATH, and add the install directories (usually under <code>%LOCALAPPDATA%\Programs\Python\</code> and <code>C:\Program Files\nodejs\</code>), then restart the terminal again.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test Projects -->
+  <div class="section" data-section="test">
+    <div class="section-header">
+      <h2>6. Quick Test Projects</h2>
+      <span class="badge">Optional</span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="step">
+        <input type="checkbox" data-id="test-python">
+        <div class="step-content">
+          <h3>Python smoke test</h3>
+          <div class="cmd-box">mkdir %USERPROFILE%\dev-test && cd %USERPROFILE%\dev-test
+python -c "print('Python works!')"
+echo print('Hello from Python') > hello.py
+python hello.py<span class="copy-btn">Copy</span></div>
+        </div>
+      </div>
+      <div class="step">
+        <input type="checkbox" data-id="test-node">
+        <div class="step-content">
+          <h3>Node.js smoke test</h3>
+          <div class="cmd-box">node -e "console.log('Node.js works!')"
+echo console.log('Hello from Node') > hello.js
+node hello.js<span class="copy-btn">Copy</span></div>
+        </div>
+      </div>
+      <div class="step">
+        <input type="checkbox" data-id="test-git">
+        <div class="step-content">
+          <h3>Git smoke test</h3>
+          <div class="cmd-box">git init
+git add .
+git status
+git commit -m "Initial commit"<span class="copy-btn">Copy</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Progress is saved in your browser. Refresh anytime — your checkboxes stay checked.<br>
+    Winget package IDs current as of late 2025 / 2026. Run <code>winget search</code> if a package ID changes.
+  </footer>
+</div>
+
+<script>
+const sections = document.querySelectorAll('.section');
+const checkboxes = document.querySelectorAll('input[type="checkbox"][data-id]');
+const progressFill = document.getElementById('progressFill');
+const progressText = document.getElementById('progressText');
+
+// Accordion
+sections.forEach(sec => {
+  sec.querySelector('.section-header').addEventListener('click', () => {
+    sec.classList.toggle('open');
+  });
+});
+
+// Load saved state
+function loadState() {
+  const saved = JSON.parse(localStorage.getItem('win-dev-setup') || '{}');
+  checkboxes.forEach(cb => {
+    if (saved[cb.dataset.id]) cb.checked = true;
+  });
+  updateProgress();
+}
+
+// Save & progress
+function updateProgress() {
+  const total = checkboxes.length;
+  const done = [...checkboxes].filter(c => c.checked).length;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  progressFill.style.width = pct + '%';
+  progressText.textContent = `${done} / ${total}`;
+
+  const state = {};
+  checkboxes.forEach(cb => { state[cb.dataset.id] = cb.checked; });
+  localStorage.setItem('win-dev-setup', JSON.stringify(state));
+}
+
+checkboxes.forEach(cb => cb.addEventListener('change', updateProgress));
+
+// Copy buttons
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const box = btn.closest('.cmd-box');
+    const text = box.childNodes[0].textContent.trim();
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'Copy';
+        btn.classList.remove('copied');
+      }, 1500);
+    } catch {
+      // fallback
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    }
+  });
+});
+
+loadState();
+</script>
+</body>
+</html>

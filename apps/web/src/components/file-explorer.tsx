@@ -109,30 +109,32 @@ export function FileExplorer({
       onDrop={onDrop}
       aria-label="Sandbox"
     >
-      <header className="flex h-12 shrink-0 items-center gap-3 border-b border-line px-4">
-        <nav aria-label="Sandbox path" className="min-w-0">
-          <ol className="flex items-center gap-1.5 font-mono text-[13px]">
-            <li>
-              <button
-                type="button"
-                className="text-muted transition-colors duration-150 hover:text-signal"
-                onClick={() => {
-                  setQuery('')
-                  onRefresh()
-                }}
-              >
-                sandbox
-              </button>
-            </li>
-            <li aria-hidden="true" className="text-line-strong">
-              /
-            </li>
-            <li className="truncate">
-              <span aria-current="page">{username}</span>
-            </li>
-          </ol>
-        </nav>
-        {files !== null ? <p className="hidden font-mono text-[12px] text-muted sm:block">{summary}</p> : null}
+      <header className="nt-mast flex shrink-0 items-center gap-4 border-b border-line px-4 sm:px-5">
+        <div className="min-w-0 py-2.5">
+          <nav aria-label="Sandbox path">
+            <ol className="flex items-center gap-1.5 font-mono text-[13px]">
+              <li>
+                <button
+                  type="button"
+                  className="text-muted transition-colors duration-150 hover:text-signal"
+                  onClick={() => {
+                    setQuery('')
+                    onRefresh()
+                  }}
+                >
+                  sandbox
+                </button>
+              </li>
+              <li aria-hidden="true" className="text-line-strong">
+                /
+              </li>
+              <li className="truncate font-medium tracking-[-0.01em]">
+                <span aria-current="page">{username}</span>
+              </li>
+            </ol>
+          </nav>
+          <p className="mt-0.5 truncate font-mono text-[12px] text-muted">{summary}</p>
+        </div>
         <div className="ml-auto flex items-center gap-2">
           <label className="relative hidden md:block">
             <span className="sr-only">Filter files by name</span>
@@ -183,10 +185,6 @@ export function FileExplorer({
         </label>
       </div>
 
-      {files !== null ? (
-        <p className="border-b border-line px-4 py-2 font-mono text-[12px] text-muted sm:hidden">{summary}</p>
-      ) : null}
-
       {error && files ? (
         <p role="alert" className="border-b border-line px-4 py-2 text-[13px] text-oxide">
           {error}
@@ -209,7 +207,7 @@ export function FileExplorer({
         ) : (
           <table className="w-full min-w-[560px] border-collapse text-left">
             <caption className="sr-only">Files in {username}&apos;s sandbox</caption>
-            <thead className="sticky top-0 z-10 bg-surface">
+            <thead className="nt-cols">
               <tr className="border-b border-line text-[12px] text-muted">
                 <th scope="col" className="px-4 py-2 font-medium">Name</th>
                 <th scope="col" className="w-24 px-3 py-2 font-medium">Kind</th>

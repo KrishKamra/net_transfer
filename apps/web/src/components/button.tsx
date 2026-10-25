@@ -19,7 +19,7 @@ export function Button({ variant = 'secondary', className, type = 'button', ...p
     <button
       type={type}
       className={cn(
-        'inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md px-2.5 text-[13px] font-medium transition-[background-color,color,border-color] duration-150 hover:duration-150 disabled:cursor-not-allowed disabled:opacity-40',
+        'inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md px-2.5 text-[13px] font-medium disabled:cursor-not-allowed disabled:opacity-40',
         STYLES[variant],
         className,
       )}

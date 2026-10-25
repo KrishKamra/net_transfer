@@ -166,6 +166,9 @@ What to mark, in order:
 > [!WARNING]
 > `AUTH` includes the account password as ASCII. A capture is a secret. Keep it local, and prefer a password you created only for this lab.
 
+> [!TIP]
+> Open **Protocol inspector → Wireshark** in the web UI during the capture. It lists the same conversation in Wireshark's column order, with the same client port in `Info`. One difference: the inspector marks the handshake at `accept()` and the close at FIN as single rows, while Wireshark shows each segment. The telemetry link on port 2199 is outside the `2121 || 8000` filter, so it does not clutter the capture.
+
 For the 8-byte header, select the first bytes of server data after the `150` line in a `RETR` stream. Decode them as a big-endian unsigned 64-bit integer. The number has to equal the file size, and the following payload has to be that long before the `226` line.
 
 Write the note as what you observed: one screenshot or a pasted stream for the handshake, one for `STOR`, one for the `RETR` header plus a slice of payload, and one for the FIN teardown. Say which display filter you used. That note is milestone 8. This file stays the map.

@@ -1,0 +1,686 @@
+/* ── Protocol inspector ─────────────────────────────────────────────────
+   Frame families (tokens live in index.css @theme):
+   --color-syn  TCP handshake / teardown
+   --color-cmd  L7 command
+   --color-ok   L7 status reply
+   --color-data length prefix and payload chunks                          */
+
+/* Segmented mode switch in the chrome */
+
+.nt-seg {
+  position: relative;
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  padding: 2px;
+  border-radius: 8px;
+  background: color-mix(in oklch, var(--color-canvas) 80%, white);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+
+.nt-seg-thumb {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  border-radius: 6px;
+  background: var(--color-surface);
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--color-signal) 18%, var(--color-line)),
+    0 1px 2px color-mix(in oklch, var(--color-ink) 10%, transparent),
+    inset 0 -1px 0 color-mix(in oklch, var(--color-signal) 30%, transparent);
+  transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.nt-seg button {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 12px;
+  border-radius: 6px;
+  color: var(--color-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.nt-seg button:hover,
+.nt-seg button[aria-pressed="true"] {
+  color: var(--color-ink);
+}
+
+.nt-seg button[aria-pressed="true"] svg {
+  color: var(--color-signal);
+}
+
+.nt-seg-sm button {
+  height: 24px;
+  padding: 0 9px;
+  font-size: 12px;
+}
+
+.nt-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-surface);
+  background: var(--color-signal);
+}
+
+/* Live socket beacon */
+
+.nt-beacon {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 24px;
+  padding: 0 9px 0 8px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-muted);
+  background: color-mix(in oklch, var(--color-canvas) 70%, white);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+
+.nt-beacon[data-state="live"] {
+  color: color-mix(in oklch, var(--color-pine) 80%, var(--color-ink));
+  background: color-mix(in oklch, var(--color-pine) 7%, white);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--color-pine) 22%, transparent);
+}
+
+.nt-beacon[data-state="live"] .nt-led {
+  animation: nt-pulse 2.4s ease-out infinite;
+}
+
+.nt-beacon[data-state="idle"] {
+  color: color-mix(in oklch, var(--color-signal) 80%, var(--color-ink));
+  background: color-mix(in oklch, var(--color-signal) 6%, white);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--color-signal) 20%, transparent);
+}
+
+/* Page and panes */
+
+.nt-inspector {
+  background-color: var(--color-surface);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--color-signal-bright) 11%, white) 0%,
+    var(--color-surface) 88px
+  );
+}
+
+.nt-pane-title {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.nt-side {
+  background-color: var(--color-canvas);
+  background-image: radial-gradient(
+    100% 30% at 100% 0%,
+    color-mix(in oklch, var(--color-signal) 7%, transparent),
+    transparent 70%
+  );
+}
+
+@media (min-width: 1024px) {
+  .nt-side {
+    box-shadow: inset 1px 0 0 color-mix(in oklch, var(--color-signal) 14%, white);
+  }
+}
+
+.nt-card-plate {
+  border-radius: 10px;
+  background:
+    linear-gradient(var(--color-surface), var(--color-surface)) padding-box,
+    linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.95),
+        color-mix(in oklch, var(--color-signal) 26%, transparent) 46%,
+        color-mix(in oklch, var(--color-ink) 12%, transparent)
+      )
+      border-box;
+  border: 1px solid transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 18px 40px -30px color-mix(in oklch, var(--color-ink) 45%, transparent);
+}
+
+/* Sequence ladder */
+
+.nt-ladder {
+  background-color: var(--color-surface);
+  background-image: radial-gradient(color-mix(in oklch, var(--color-ink) 7%, transparent) 1px, transparent 1.2px);
+  background-size: 18px 18px;
+  background-position: 9px 9px;
+}
+
+/* The ladder sizes itself from its own width, not the viewport. */
+.nt-ladder {
+  container-type: inline-size;
+}
+
+.nt-ladder > * {
+  --gutter: 80px;
+}
+
+@container (max-width: 560px) {
+  .nt-ladder > * {
+    --gutter: 58px;
+  }
+
+  .nt-node-addr {
+    display: none;
+  }
+
+  .nt-ladder .nt-pkt {
+    font-size: 11px;
+  }
+}
+
+.nt-ladder-head {
+  background: color-mix(in oklch, var(--color-surface) 88%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.nt-lane-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--color-ink) 24%, transparent),
+    color-mix(in oklch, var(--color-ink) 10%, transparent)
+  );
+}
+
+.nt-node {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 5px;
+  border-radius: 8px;
+  background: var(--color-surface);
+  box-shadow:
+    0 0 0 1px var(--color-line),
+    0 6px 16px -10px color-mix(in oklch, var(--color-ink) 40%, transparent);
+}
+
+.nt-node-mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: #12141a;
+  color: #7eebf2;
+}
+
+.nt-conn-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  color: var(--color-muted);
+}
+
+.nt-pkt {
+  --tone: var(--color-signal);
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  overflow: hidden;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  white-space: nowrap;
+  color: color-mix(in oklch, var(--tone) 72%, var(--color-ink));
+  background: color-mix(in oklch, var(--tone) 8%, white);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--tone) 26%, transparent);
+  transition:
+    box-shadow 160ms cubic-bezier(0.2, 0, 0, 1),
+    background-color 160ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.nt-pkt > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nt-pkt-verb {
+  flex: none;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.nt-pkt[data-tone="data"][data-live="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.85) 50%, transparent 80%);
+  transform: translateX(-120%);
+  animation: nt-shimmer 1.6s linear infinite;
+  pointer-events: none;
+}
+
+[data-tone="tcp"] {
+  --tone: var(--color-syn);
+}
+
+[data-tone="command"] {
+  --tone: var(--color-cmd);
+}
+
+[data-tone="status"] {
+  --tone: var(--color-ok);
+}
+
+[data-tone="error"] {
+  --tone: var(--color-oxide);
+}
+
+[data-tone="data"] {
+  --tone: var(--color-data);
+}
+
+.nt-swatch {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 2px;
+  background: var(--tone);
+}
+
+.nt-rung {
+  position: relative;
+  cursor: pointer;
+  transition: background-color 140ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.nt-rung:hover {
+  background: color-mix(in oklch, var(--color-signal) 4%, transparent);
+}
+
+.nt-rung:focus-visible {
+  outline-offset: -2px;
+}
+
+.nt-rung[data-selected="true"] {
+  background: color-mix(in oklch, var(--color-signal) 7%, transparent);
+  box-shadow: inset 2px 0 0 var(--color-signal);
+}
+
+.nt-rung[data-selected="true"] .nt-pkt {
+  background: color-mix(in oklch, var(--tone) 14%, white);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklch, var(--tone) 55%, transparent),
+    0 0 0 3px color-mix(in oklch, var(--tone) 12%, transparent);
+}
+
+.nt-rung[data-fresh="true"] {
+  animation: nt-rung-in 800ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.nt-wire {
+  position: absolute;
+  top: 50%;
+  height: 1.5px;
+  margin-top: -0.75px;
+  border-radius: 1px;
+  background: color-mix(in oklch, var(--tone) 55%, transparent);
+}
+
+.nt-wire[data-synthetic="true"] {
+  background: repeating-linear-gradient(
+    90deg,
+    color-mix(in oklch, var(--tone) 60%, transparent) 0 5px,
+    transparent 5px 9px
+  );
+}
+
+.nt-wire::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-top: 1.5px solid color-mix(in oklch, var(--tone) 80%, transparent);
+  border-right: 1.5px solid color-mix(in oklch, var(--tone) 80%, transparent);
+}
+
+.nt-wire[data-dir="right"]::after {
+  right: 0;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.nt-wire[data-dir="left"]::after {
+  left: 0;
+  transform: translateY(-50%) rotate(-135deg);
+}
+
+.nt-spark {
+  position: absolute;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin-top: -3.5px;
+  border-radius: 999px;
+  background: var(--tone);
+  box-shadow:
+    0 0 0 3px color-mix(in oklch, var(--tone) 18%, transparent),
+    0 0 12px var(--tone);
+  opacity: 0;
+  pointer-events: none;
+}
+
+[data-fresh="true"] .nt-spark[data-dir="right"] {
+  animation: nt-travel-right 620ms cubic-bezier(0.35, 0.1, 0.25, 1);
+}
+
+[data-fresh="true"] .nt-spark[data-dir="left"] {
+  animation: nt-travel-left 620ms cubic-bezier(0.35, 0.1, 0.25, 1);
+}
+
+.nt-stream-band {
+  position: absolute;
+  top: 50%;
+  height: 6px;
+  margin-top: -3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--color-data) 12%, white);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--color-data) 22%, transparent);
+}
+
+.nt-stream-fill {
+  position: absolute;
+  inset-block: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-data), var(--color-signal-bright));
+  transition: width 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.nt-stream-band[data-dir="left"] .nt-stream-fill {
+  right: 0;
+  background: linear-gradient(270deg, var(--color-data), var(--color-signal-bright));
+}
+
+.nt-stream-band[data-live="true"] .nt-stream-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+  transform: translateX(-120%);
+  animation: nt-shimmer 1.2s linear infinite;
+}
+
+.nt-jump {
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--color-signal) 30%, var(--color-line)),
+    0 10px 24px -12px color-mix(in oklch, var(--color-ink) 50%, transparent);
+}
+
+/* Frame inspector */
+
+.nt-well {
+  border-radius: 8px;
+  background: color-mix(in oklch, var(--color-canvas) 50%, white);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+
+.nt-byte {
+  display: grid;
+  flex: none;
+  place-items: center;
+  min-width: 22px;
+  height: 24px;
+  padding: 0 3px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-ink);
+  background: var(--color-surface);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+
+.nt-byte:first-child {
+  border-radius: 5px 0 0 5px;
+}
+
+.nt-byte:last-child {
+  border-radius: 0 5px 5px 0;
+}
+
+.nt-byte[data-role="delim"] {
+  color: var(--color-surface);
+  background: var(--color-cmd);
+  box-shadow: none;
+}
+
+.nt-byte[data-role="prefix"] {
+  color: color-mix(in oklch, var(--color-syn) 80%, var(--color-ink));
+  background: color-mix(in oklch, var(--color-syn) 10%, white);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--color-syn) 30%, transparent);
+}
+
+.nt-byte[data-role="payload"] {
+  color: color-mix(in oklch, var(--color-data) 70%, var(--color-ink));
+  background: color-mix(in oklch, var(--color-data) 7%, white);
+}
+
+.nt-byte[data-role="more"] {
+  padding: 0 8px;
+  color: var(--color-muted);
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 4px,
+    color-mix(in oklch, var(--color-line) 70%, transparent) 4px 5px
+  );
+}
+
+.nt-byte[data-focus="true"] {
+  position: relative;
+  z-index: 1;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklch, var(--color-signal) 60%, transparent),
+    0 0 0 2px color-mix(in oklch, var(--color-signal) 16%, transparent);
+}
+
+.nt-bracket {
+  --tone: var(--color-line-strong);
+  height: 6px;
+  margin-top: 5px;
+  border: 1.5px solid color-mix(in oklch, var(--tone) 60%, transparent);
+  border-top: 0;
+  border-radius: 0 0 4px 4px;
+}
+
+.nt-hex-row {
+  border-radius: 4px;
+}
+
+.nt-hex-row:hover {
+  background: color-mix(in oklch, var(--color-signal) 6%, transparent);
+}
+
+.nt-hex-nl {
+  color: var(--color-cmd);
+  font-weight: 600;
+}
+
+.nt-hex-dim {
+  color: color-mix(in oklch, var(--color-muted) 55%, transparent);
+}
+
+/* Wireshark parity table */
+
+.nt-ws-head th {
+  background: color-mix(in oklch, var(--color-surface) 90%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: inset 0 -1px 0 var(--color-line);
+}
+
+.nt-ws-row {
+  --tone: var(--color-line-strong);
+  cursor: pointer;
+  background: color-mix(in oklch, var(--tone) 5%, white);
+  box-shadow: inset 0 -1px 0 color-mix(in oklch, var(--color-line) 70%, transparent);
+}
+
+.nt-ws-row:hover {
+  background: color-mix(in oklch, var(--tone) 11%, white);
+}
+
+.nt-ws-row[data-selected="true"] {
+  color: var(--color-surface);
+  background: color-mix(in oklch, var(--color-signal) 86%, var(--color-ink));
+}
+
+.nt-ws-row[data-selected="true"] .nt-ws-dim {
+  color: color-mix(in oklch, var(--color-surface) 78%, transparent);
+}
+
+.nt-ws-dim {
+  color: var(--color-muted);
+}
+
+.nt-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--color-muted);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+  transition:
+    color 150ms cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 150ms cubic-bezier(0.2, 0, 0, 1),
+    background-color 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.nt-chip:hover {
+  color: var(--color-ink);
+}
+
+.nt-chip[aria-pressed="true"] {
+  color: var(--color-ink);
+  background: color-mix(in oklch, var(--tone, var(--color-signal)) 8%, white);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--tone, var(--color-signal)) 40%, transparent);
+}
+
+/* Telemetry summary */
+
+.nt-stat {
+  border-radius: 8px;
+  background: var(--color-surface);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+
+.nt-mix {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+}
+
+.nt-mix span {
+  min-width: 3px;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--tone);
+  transition: flex-grow 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.nt-spark-area {
+  fill: color-mix(in oklch, var(--color-data) 12%, transparent);
+}
+
+.nt-spark-line {
+  fill: none;
+  stroke: var(--color-data);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.nt-spark-guide {
+  stroke: color-mix(in oklch, var(--color-ink) 30%, transparent);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+@keyframes nt-rung-in {
+  from {
+    background: color-mix(in oklch, var(--color-signal-bright) 24%, transparent);
+  }
+}
+
+@keyframes nt-travel-right {
+  0% {
+    left: 0;
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    left: calc(100% - 7px);
+    opacity: 0;
+  }
+}
+
+@keyframes nt-travel-left {
+  0% {
+    left: calc(100% - 7px);
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    left: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes nt-pulse {
+  0% {
+    box-shadow:
+      0 0 0 0 color-mix(in oklch, var(--color-pine) 45%, transparent),
+      0 0 10px color-mix(in oklch, var(--color-pine) 55%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow:
+      0 0 0 6px color-mix(in oklch, var(--color-pine) 0%, transparent),
+      0 0 10px color-mix(in oklch, var(--color-pine) 55%, transparent);
+  }
+}

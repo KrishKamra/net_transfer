@@ -79,6 +79,7 @@ export function AuthScreen({ onAuthenticated }: Props) {
       <aside className="nt-wash flex flex-col justify-between gap-10 px-5 py-5 sm:px-8 lg:w-[44%] lg:px-12 lg:py-10">
         <div className="flex items-center gap-3">
           <Logo size={36} title="NetTransfer" />
+          <span className="nt-lead" aria-hidden="true" />
           <div>
             <p className="text-[15px] font-medium tracking-[-0.02em]">NetTransfer</p>
             <p className="font-mono text-[12px] text-muted">TCP file service</p>
@@ -205,7 +206,7 @@ function ModeTab({
       onClick={onClick}
       className={cn(
         'relative z-10 pb-2.5 text-[13px] font-medium transition-colors duration-200',
-        active ? 'text-ink' : 'text-muted hover:text-ink',
+        active ? 'text-ink' : 'text-muted hover:text-signal',
       )}
     >
       {children}

@@ -3,6 +3,7 @@ Main FastAPI server initialization.
 """
 
 import asyncio
+import sys
 from contextlib import asynccontextmanager
 from importlib import import_module
 
@@ -14,14 +15,34 @@ CORSMiddleware = import_module("fastapi.middleware.cors").CORSMiddleware
 from .api.live import router as live_router
 from .api.live import transfer_hub
 from .api.routes import router
+from .api.telemetry import router as telemetry_router
 from .storage.db import init_db
+from .telemetry.hub import telemetry_hub
+from .telemetry.link import TELEMETRY_HOST, TELEMETRY_PORT, serve_ingest
 
 
 @asynccontextmanager
 async def lifespan(_app):
     init_db()
-    transfer_hub.bind(asyncio.get_running_loop())
-    yield
+    loop = asyncio.get_running_loop()
+    transfer_hub.bind(loop)
+    telemetry_hub.bind(loop)
+
+    # The TCP server process links here to feed /ws/telemetry. If the port is
+    # taken (a second worker, a stale process) the API still starts.
+    ingest = None
+    try:
+        ingest = await serve_ingest(telemetry_hub)
+        print(f"[*] Telemetry ingest listening on {TELEMETRY_HOST}:{TELEMETRY_PORT}")
+    except OSError as err:
+        print(f"[!] Telemetry ingest unavailable on port {TELEMETRY_PORT}: {err}", file=sys.stderr)
+
+    try:
+        yield
+    finally:
+        if ingest is not None:
+            ingest.close()
+        await telemetry_hub.close()
 
 
 app = FastAPI(
@@ -42,6 +63,7 @@ app.add_middleware(
 
 app.include_router(router)
 app.include_router(live_router)
+app.include_router(telemetry_router)
 
 
 @app.get("/")

@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
+@import "./inspector.css";
 
 @theme {
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
@@ -17,6 +18,12 @@
   --color-pine: oklch(0.46 0.09 160);
   --color-oxide: oklch(0.5 0.15 25);
   --color-oxide-soft: oklch(0.97 0.012 25);
+
+  /* Protocol inspector frame families. Validated as a CVD-safe set. */
+  --color-syn: #b0409e;
+  --color-cmd: #3563d6;
+  --color-ok: #4a8a24;
+  --color-data: #13a0bf;
 }
 
 html {
@@ -75,9 +82,49 @@ body {
 }
 
 .nt-chrome {
-  background: color-mix(in oklch, var(--color-surface) 78%, transparent);
-  backdrop-filter: blur(14px);
-  border-bottom: 1px solid color-mix(in oklch, var(--color-ink) 8%, transparent);
+  position: relative;
+  background-color: var(--color-surface);
+  background-image: linear-gradient(
+    90deg,
+    color-mix(in oklch, var(--color-signal-bright) 16%, white) 0%,
+    var(--color-surface) 148px
+  );
+  border-bottom: 1px solid var(--color-line);
+}
+
+.nt-chrome::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  width: 72px;
+  bottom: -1px;
+  height: 1px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, color-mix(in oklch, var(--color-signal) 45%, white), transparent);
+  pointer-events: none;
+}
+
+.nt-lead {
+  width: 22px;
+  height: 2px;
+  flex: none;
+  border-radius: 999px;
+  background: #7eebf2;
+}
+
+.nt-account {
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--color-signal) 8%, white);
+  color: var(--color-ink);
+}
+
+.nt-mast {
+  min-height: 60px;
 }
 
 .nt-plate {
@@ -136,14 +183,25 @@ body {
   box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-signal) 10%, transparent);
 }
 
-.nt-submit {
+.nt-submit,
+.nt-quiet,
+.nt-line {
   transition:
     background-color 150ms cubic-bezier(0.2, 0, 0, 1),
-    box-shadow 180ms cubic-bezier(0.2, 0, 0, 1);
+    border-color 150ms cubic-bezier(0.2, 0, 0, 1),
+    color 150ms cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 160ms cubic-bezier(0.2, 0, 0, 1),
+    transform 120ms cubic-bezier(0.2, 0, 0, 1);
 }
 
 .nt-submit:hover:not(:disabled) {
-  box-shadow: 0 6px 14px -10px color-mix(in oklch, var(--color-signal) 55%, transparent);
+  box-shadow: inset 0 -1px 0 var(--color-signal);
+}
+
+.nt-submit:active:not(:disabled),
+.nt-quiet:active:not(:disabled),
+.nt-line:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .nt-submit:focus-visible {
@@ -151,47 +209,50 @@ body {
   box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-signal) 16%, transparent);
 }
 
-.nt-quiet {
-  transition:
-    background-color 150ms cubic-bezier(0.2, 0, 0, 1),
-    color 150ms cubic-bezier(0.2, 0, 0, 1);
-}
-
 .nt-quiet:hover:not(:disabled) {
-  background: color-mix(in oklch, var(--color-signal) 8%, transparent);
-}
-
-.nt-line {
-  transition:
-    background-color 150ms cubic-bezier(0.2, 0, 0, 1),
-    border-color 150ms cubic-bezier(0.2, 0, 0, 1);
+  color: var(--color-signal);
+  background: color-mix(in oklch, var(--color-signal) 6%, transparent);
+  box-shadow: inset 0 -1px 0 color-mix(in oklch, var(--color-signal) 55%, transparent);
 }
 
 .nt-line:hover:not(:disabled) {
-  border-color: color-mix(in oklch, var(--color-signal) 40%, var(--color-line-strong));
+  color: var(--color-signal);
+  border-color: color-mix(in oklch, var(--color-signal) 28%, var(--color-line-strong));
+  box-shadow: inset 0 -1px 0 var(--color-signal);
 }
 
 .nt-files {
   background-color: var(--color-surface);
-  background-image: radial-gradient(
-    58% 32% at 0% 0%,
-    color-mix(in oklch, var(--color-signal) 8%, transparent),
-    transparent 72%
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--color-signal-bright) 11%, white) 0%,
+    var(--color-surface) 88px
   );
+}
+
+.nt-cols {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.nt-cols th {
+  background: color-mix(in oklch, var(--color-surface) 88%, transparent);
+  backdrop-filter: blur(10px);
 }
 
 .nt-rail {
   background-color: var(--color-canvas);
   background-image: radial-gradient(
-    100% 40% at 100% 0%,
-    color-mix(in oklch, var(--color-signal) 12%, transparent),
+    100% 36% at 100% 0%,
+    color-mix(in oklch, var(--color-signal) 7%, transparent),
     transparent 70%
   );
 }
 
 @media (min-width: 1024px) {
   .nt-rail {
-    box-shadow: inset 1px 0 0 color-mix(in oklch, var(--color-signal) 22%, white);
+    box-shadow: inset 1px 0 0 color-mix(in oklch, var(--color-signal) 14%, white);
   }
 }
 
@@ -202,8 +263,8 @@ body {
 }
 
 .nt-row:hover {
-  background: color-mix(in oklch, var(--color-signal) 6%, var(--color-surface));
-  box-shadow: inset 2px 0 0 var(--color-signal);
+  background: color-mix(in oklch, var(--color-signal) 4%, var(--color-surface));
+  box-shadow: inset 1px 0 0 color-mix(in oklch, var(--color-signal) 65%, white);
 }
 
 .nt-card {

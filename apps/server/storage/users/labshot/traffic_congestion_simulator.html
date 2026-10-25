@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Traffic Shaping & Congestion Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #08090d;
+  --glass: rgba(16, 19, 28, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.07);
+  --text: #f2f4f8;
+  --text-dim: #98a1b6;
+  --text-mute: #686f84;
+  --accent: #4ef0c4;
+  --accent-soft: rgba(78, 240, 196, 0.12);
+  --accent-glow: rgba(78, 240, 196, 0.28);
+  --warm: #ffb86c;
+  --blue: #7eb6ff;
+  --danger: #ff7a7a;
+  --radius: 18px;
+  --radius-sm: 12px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Instrument Sans', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.55;
+  min-height: 100vh;
+  background-image:
+    radial-gradient(ellipse 90% 60% at 8% -8%, rgba(78, 240, 196, 0.07), transparent 48%),
+    radial-gradient(ellipse 70% 50% at 100% 8%, rgba(126, 182, 255, 0.05), transparent 42%);
+}
+.wrap { max-width: 1200px; margin: 0 auto; padding: 3.1rem 1.5rem 4rem; }
+
+header { margin-bottom: 2.6rem; }
+.eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.eyebrow::before { content: ''; width: 20px; height: 1px; background: var(--accent); }
+h1 {
+  font-size: 2.65rem;
+  font-weight: 700;
+  letter-spacing: -0.032em;
+  line-height: 1.08;
+  margin-bottom: 0.6rem;
+  background: linear-gradient(180deg, #fff 0%, #c9d0de 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.lede { color: var(--text-dim); font-size: 1.02rem; max-width: 540px; }
+
+.concepts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.9rem; margin-bottom: 2.1rem; }
+@media (max-width: 860px) { .concepts { grid-template-columns: 1fr; } }
+.concept {
+  background: var(--glass);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 1.35rem 1.4rem;
+  transition: border-color 0.25s, transform 0.25s;
+}
+.concept:hover { border-color: rgba(78, 240, 196, 0.22); transform: translateY(-2px); }
+.concept .idx { font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; color: var(--text-mute); margin-bottom: 0.5rem; }
+.concept h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.35rem; }
+.concept p { font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+
+.lab {
+  background: var(--glass);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 1.7rem;
+  margin-bottom: 1.4rem;
+  position: relative;
+}
+.lab::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(78, 240, 196, 0.35), transparent);
+}
+.lab-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 1.4rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--glass-border);
+}
+.lab-header h2 { font-size: 1.12rem; font-weight: 600; letter-spacing: -0.015em; }
+.tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+  background: rgba(255,255,255,0.03);
+  padding: 0.28rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid var(--glass-border);
+}
+.layout { display: grid; grid-template-columns: 300px 1fr; gap: 2rem; }
+@media (max-width: 920px) { .layout { grid-template-columns: 1fr; } }
+
+.controls { display: flex; flex-direction: column; gap: 1rem; }
+.field { display: flex; flex-direction: column; gap: 0.4rem; }
+.field-top { display: flex; justify-content: space-between; align-items: center; }
+.field label { font-size: 0.76rem; font-weight: 500; color: var(--text-dim); }
+.field .value { font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; color: var(--accent); }
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 3px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+input[type="range"]:hover { background: rgba(255,255,255,0.12); }
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--accent);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  transition: box-shadow 0.15s, transform 0.12s;
+}
+input[type="range"]::-webkit-slider-thumb:hover { box-shadow: 0 0 0 5px var(--accent-glow); transform: scale(1.1); }
+select {
+  font-family: inherit;
+  font-size: 0.82rem;
+  background: #161922;
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+  outline: none;
+  color-scheme: dark;
+  transition: border-color 0.15s, background 0.15s;
+}
+select:hover { border-color: rgba(78,240,196,0.28); background: #1c2030; }
+select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+select option {
+  background: #161922;
+  color: #f2f4f8;
+  padding: 0.4rem;
+}
+
+.actions { display: flex; gap: 0.45rem; margin-top: 0.4rem; flex-wrap: wrap; }
+button {
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.52rem 0.95rem;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-primary {
+  background: linear-gradient(180deg, #5ef5cc, #3ee0b6);
+  color: #08120e;
+  box-shadow: 0 1px 8px rgba(78,240,196,0.2);
+}
+.btn-primary:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(78,240,196,0.3); }
+.btn-primary:active { transform: translateY(0); }
+.btn-ghost {
+  background: rgba(255,255,255,0.03);
+  color: var(--text-dim);
+  border: 1px solid var(--glass-border);
+}
+.btn-ghost:hover { background: rgba(255,255,255,0.07); color: var(--text); border-color: rgba(255,255,255,0.12); }
+.btn-ghost:active { background: rgba(255,255,255,0.05); }
+.btn-warn { background: rgba(255,122,122,0.12); color: var(--danger); }
+.btn-warn:hover { background: rgba(255,122,122,0.22); }
+
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-top: 1.15rem; }
+.stat {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.35rem;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+.stat:hover { border-color: rgba(255,255,255,0.12); }
+.stat .n { font-family: 'JetBrains Mono', monospace; font-size: 1.05rem; font-weight: 500; }
+.stat .l { font-size: 0.6rem; color: var(--text-mute); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 0.15rem; }
+
+.inference {
+  margin-top: 1rem;
+  padding: 0.75rem 0.9rem;
+  background: rgba(78, 240, 196, 0.04);
+  border: 1px solid rgba(78, 240, 196, 0.12);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+  min-height: 3.2rem;
+}
+.inference strong { color: var(--accent); font-weight: 600; }
+
+.viz-area { display: flex; flex-direction: column; gap: 0.85rem; }
+canvas.flow {
+  width: 100%;
+  height: 240px;
+  background: rgba(0,0,0,0.22);
+  border-radius: var(--radius);
+  display: block;
+  border: 1px solid var(--glass-border);
+}
+.chart-box {
+  background: rgba(0,0,0,0.18);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 0.7rem 0.7rem 0.3rem;
+  height: 185px;
+  position: relative;
+}
+.chart-box canvas { width: 100% !important; height: 100% !important; }
+
+.legend { display: flex; gap: 1rem; font-size: 0.72rem; color: var(--text-dim); margin-top: 0.6rem; flex-wrap: wrap; }
+.legend i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 0.28rem; vertical-align: middle; }
+
+footer {
+  margin-top: 2.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--glass-border);
+  font-size: 0.74rem;
+  color: var(--text-mute);
+  display: flex;
+  justify-content: space-between;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Transport Layer</div>
+    <h1>Traffic Shaping<br>& Congestion Control</h1>
+    <p class="lede">Observe how open-loop shaping and closed-loop congestion control manage bursts, queues, and loss under varying network conditions.</p>
+  </header>
+
+  <div class="concepts">
+    <div class="concept">
+      <div class="idx">01 — Token Bucket</div>
+      <h3>Controlled Burst</h3>
+      <p>Tokens accrue at a fixed rate up to capacity. Packets depart only when tokens are available, allowing short bursts while enforcing a long-term average rate.</p>
+    </div>
+    <div class="concept">
+      <div class="idx">02 — Leaky Bucket</div>
+      <h3>Constant Drain</h3>
+      <p>Arrivals enter a finite buffer and exit at a constant rate. Excess traffic is discarded when the buffer is full, producing a smooth regulated output.</p>
+    </div>
+    <div class="concept">
+      <div class="idx">03 — TCP Reno</div>
+      <h3>Reactive Window</h3>
+      <p>Exponential growth in slow start, linear in congestion avoidance, and a multiplicative decrease on loss. Classic closed-loop response to congestion signals.</p>
+    </div>
+  </div>
+
+  <section class="lab">
+    <div class="lab-header">
+      <h2>Traffic Shaping</h2>
+      <span class="tag">Open-loop</span>
+    </div>
+    <div class="layout">
+      <div>
+        <div class="controls">
+          <div class="field">
+            <div class="field-top"><label>Algorithm</label></div>
+            <select id="shapeAlgo">
+              <option value="token">Token Bucket</option>
+              <option value="leaky">Leaky Bucket</option>
+              <option value="policer">Token Policer</option>
+            </select>
+          </div>
+          <div class="field">
+            <div class="field-top"><label>Arrival Rate</label><span class="value" id="arrivalRateVal">10</span></div>
+            <input type="range" id="arrivalRate" min="2" max="20" value="10">
+          </div>
+          <div class="field">
+            <div class="field-top"><label>Shape Rate</label><span class="value" id="shapeRateVal">5</span></div>
+            <input type="range" id="shapeRate" min="1" max="14" value="5">
+          </div>
+          <div class="field">
+            <div class="field-top"><label>Capacity</label><span class="value" id="bucketSizeVal">12</span></div>
+            <input type="range" id="bucketSize" min="6" max="24" value="12">
+          </div>
+          <div class="field">
+            <div class="field-top"><label>Burstiness</label><span class="value" id="burstinessVal">2</span></div>
+            <input type="range" id="burstiness" min="0" max="6" value="2">
+          </div>
+          <div class="actions">
+            <button class="btn-primary" id="shapeStart">Run</button>
+            <button class="btn-ghost" id="shapePause">Pause</button>
+            <button class="btn-ghost" id="shapeReset">Reset</button>
+          </div>
+        </div>
+        <div class="stats" id="shapeStats"></div>
+        <div class="inference" id="shapeInference">Idle. Start the simulation to observe how the shaper regulates traffic.</div>
+      </div>
+      <div class="viz-area">
+        <canvas id="shapeCanvas" class="flow" width="660" height="240"></canvas>
+        <div class="chart-box"><canvas id="shapeChart"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lab">
+    <div class="lab-header">
+      <h2>Congestion Control</h2>
+      <span class="tag">Closed-loop</span>
+    </div>
+    <div class="layout">
+      <div>
+        <div class="controls">
+          <div class="field">
+            <div class="field-top"><label>Variant</label></div>
+            <select id="ccVariant">
+              <option value="reno">TCP Reno</option>
+              <option value="tahoe">TCP Tahoe</option>
+              <option value="cubic">Cubic (approx)</option>
+            </select>
+          </div>
+          <div class="field">
+            <div class="field-top"><label>Initial cwnd</label><span class="value" id="initCwndVal">1</span></div>
+            <input type="range" id="initCwnd" min="1" max="12" value="1">
+          </div>
+          <div class="field">
+            <div class="field-top"><label>ssthresh</label><span class="value" id="ssthreshVal">16</span></div>
+            <input type="range" id="ssthresh" min="4" max="40" value="16">
+          </div>
+          <div class="field">
+            <div class="field-top"><label>Loss Probability</label><span class="value" id="lossProbVal">4%</span></div>
+            <input type="range" id="lossProb" min="0" max="14" value="4">
+          </div>
+          <div class="actions">
+            <button class="btn-primary" id="ccStart">Advance</button>
+            <button class="btn-warn" id="ccLoss">Inject Loss</button>
+            <button class="btn-ghost" id="ccReset">Reset</button>
+          </div>
+          <div class="legend">
+            <span><i style="background:#4ef0c4"></i>Slow Start</span>
+            <span><i style="background:#7eb6ff"></i>Avoidance</span>
+            <span><i style="background:#ffb86c"></i>Recovery</span>
+          </div>
+        </div>
+        <div class="stats" id="ccStats"></div>
+        <div class="inference" id="ccInference">Idle. Advance rounds or inject a loss to see the window respond.</div>
+      </div>
+      <div class="viz-area">
+        <div class="chart-box" style="height:175px"><canvas id="ccChart"></canvas></div>
+        <div class="chart-box" style="height:155px"><canvas id="throughputChart"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Computer Networks · Transport Layer</span>
+    <span>Interactive Simulator</span>
+  </footer>
+</div>
+
+<script>
+Chart.defaults.color = '#98a1b6';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.045)';
+Chart.defaults.font.family = "'Instrument Sans', system-ui, sans-serif";
+
+const shapeCanvas = document.getElementById('shapeCanvas');
+const sctx = shapeCanvas.getContext('2d');
+let shapeRunning = false, shapeAnimId = null, shapeTime = 0;
+let tokens = 0, queue = [], packets = [];
+let shapeHistory = { t: [], input: [], output: [], q: [] };
+let shapeStats = { sent: 0, dropped: 0, total: 0 };
+let inputAccum = 0, outputAccum = 0, sampleTimer = 0;
+
+const shapeChart = new Chart(document.getElementById('shapeChart'), {
+  type: 'line',
+  data: {
+    labels: [],
+    datasets: [
+      { label: 'Input', data: [], borderColor: 'rgba(152,161,182,0.55)', backgroundColor: 'rgba(152,161,182,0.05)', tension: 0.3, pointRadius: 0, borderWidth: 1.5, fill: true },
+      { label: 'Output', data: [], borderColor: '#4ef0c4', backgroundColor: 'rgba(78,240,196,0.07)', tension: 0.3, pointRadius: 0, borderWidth: 2, fill: true },
+      { label: 'Buffer', data: [], borderColor: '#ffb86c', tension: 0.3, pointRadius: 0, borderWidth: 1.5, yAxisID: 'y1', fill: false }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    interaction: { mode: 'index', intersect: false },
+    scales: {
+      y: { beginAtZero: true, suggestedMax: 16, grid: { color: 'rgba(255,255,255,0.035)' }, ticks: { font: { size: 10 }, maxTicksLimit: 5 }, title: { display: true, text: 'rate', font: { size: 10 } } },
+      y1: { position: 'right', beginAtZero: true, suggestedMax: 16, grid: { display: false }, ticks: { font: { size: 10 }, maxTicksLimit: 5 } },
+      x: { grid: { display: false }, ticks: { font: { size: 10 }, maxTicksLimit: 6 } }
+    },
+    plugins: {
+      legend: { position: 'bottom', labels: { boxWidth: 7, padding: 8, font: { size: 10 }, usePointStyle: true } },
+      tooltip: { backgroundColor: 'rgba(16,19,28,0.96)', titleColor: '#f2f4f8', bodyColor: '#98a1b6', borderColor: 'rgba(255,255,255,0.07)', borderWidth: 1, cornerRadius: 6, padding: 7 }
+    }
+  }
+});
+
+function bindRange(id, valId, suffix = '') {
+  const el = document.getElementById(id);
+  const val = document.getElementById(valId);
+  const update = () => { val.textContent = el.value + suffix; };
+  el.addEventListener('input', update);
+  update();
+}
+bindRange('arrivalRate', 'arrivalRateVal');
+bindRange('shapeRate', 'shapeRateVal');
+bindRange('bucketSize', 'bucketSizeVal');
+bindRange('burstiness', 'burstinessVal');
+bindRange('initCwnd', 'initCwndVal');
+bindRange('ssthresh', 'ssthreshVal');
+bindRange('lossProb', 'lossProbVal', '%');
+
+function updateShapeInference() {
+  const el = document.getElementById('shapeInference');
+  const algo = document.getElementById('shapeAlgo').value;
+  const arr = +document.getElementById('arrivalRate').value;
+  const rate = +document.getElementById('shapeRate').value;
+  const cap = +document.getElementById('bucketSize').value;
+  const dropRate = shapeStats.total ? (shapeStats.dropped / shapeStats.total * 100).toFixed(1) : 0;
+  const q = algo === 'leaky' ? queue.length : Math.floor(tokens);
+
+  if (!shapeRunning && shapeStats.total === 0) {
+    el.innerHTML = 'Idle. Start the simulation to observe how the shaper regulates traffic.';
+    return;
+  }
+  if (!shapeRunning) {
+    el.innerHTML = 'Paused. ' + shapeStats.sent + ' packets shaped, ' + shapeStats.dropped + ' dropped.';
+    return;
+  }
+
+  let msg = '';
+  if (algo === 'token' || algo === 'policer') {
+    if (q === 0 && arr > rate) msg = '<strong>Tokens depleted.</strong> Arrivals exceed the rate; excess packets are dropped.';
+    else if (q > cap * 0.7) msg = '<strong>Tokens building.</strong> Arrival is below the shape rate; the bucket is refilling.';
+    else if (arr > rate) msg = '<strong>Shaping active.</strong> Output is held near the token rate while bursts are absorbed.';
+    else msg = '<strong>Under capacity.</strong> Tokens are sufficient; traffic passes with little delay.';
+  } else {
+    if (q >= cap * 0.9) msg = '<strong>Queue near full.</strong> Further arrivals will be dropped until the buffer drains.';
+    else if (q > 2) msg = '<strong>Buffer absorbing burst.</strong> Packets are queued and leaking at a constant rate.';
+    else if (arr > rate) msg = '<strong>Queue forming.</strong> Input exceeds the leak rate; occupancy is rising.';
+    else msg = '<strong>Steady drain.</strong> Output matches the configured leak rate.';
+  }
+  if (dropRate > 5) msg += ' Drop rate is elevated (' + dropRate + '%).';
+  el.innerHTML = msg;
+}
+
+function resetShape() {
+  shapeRunning = false;
+  if (shapeAnimId) cancelAnimationFrame(shapeAnimId);
+  shapeTime = 0; tokens = 0; queue = []; packets = [];
+  shapeHistory = { t: [], input: [], output: [], q: [] };
+  shapeStats = { sent: 0, dropped: 0, total: 0 };
+  inputAccum = 0; outputAccum = 0; sampleTimer = 0;
+  shapeChart.data.labels = [];
+  shapeChart.data.datasets.forEach(d => d.data = []);
+  shapeChart.update();
+  renderShapeStats();
+  updateShapeInference();
+  drawFlow();
+}
+function renderShapeStats() {
+  const d = shapeStats.total ? ((shapeStats.dropped / shapeStats.total) * 100).toFixed(1) : '0.0';
+  document.getElementById('shapeStats').innerHTML = `
+    <div class="stat"><div class="n">${shapeStats.sent}</div><div class="l">Shaped</div></div>
+    <div class="stat"><div class="n">${shapeStats.dropped}</div><div class="l">Dropped</div></div>
+    <div class="stat"><div class="n">${d}%</div><div class="l">Drop</div></div>
+    <div class="stat"><div class="n">${queue.length}</div><div class="l">Queued</div></div>`;
+}
+
+function drawFlow() {
+  const w = shapeCanvas.width, h = shapeCanvas.height;
+  sctx.clearRect(0, 0, w, h);
+  const algo = document.getElementById('shapeAlgo').value;
+  const cap = +document.getElementById('bucketSize').value;
+
+  sctx.strokeStyle = 'rgba(255,255,255,0.02)';
+  sctx.lineWidth = 1;
+  for (let x = 48; x < w; x += 48) {
+    sctx.beginPath(); sctx.moveTo(x, 26); sctx.lineTo(x, h - 16); sctx.stroke();
+  }
+
+  sctx.fillStyle = '#686f84';
+  sctx.font = '500 10px JetBrains Mono';
+  sctx.fillText('IN', 20, 32);
+  sctx.fillText('OUT', w - 44, 32);
+
+  const cx = 210, cy = 44, cw = 180, ch = 148;
+  sctx.fillStyle = 'rgba(255,255,255,0.015)';
+  sctx.beginPath();
+  sctx.roundRect(cx, cy, cw, ch, 12);
+  sctx.fill();
+  sctx.strokeStyle = 'rgba(255,255,255,0.07)';
+  sctx.stroke();
+
+  const displayTokens = Math.floor(tokens);
+  const displayQueue = queue.length;
+  const showCount = (algo === 'leaky') ? displayQueue : displayTokens;
+
+  if (algo === 'token' || algo === 'policer') {
+    const n = Math.min(displayTokens, cap);
+    const cols = 6;
+    for (let i = 0; i < n; i++) {
+      const col = i % cols, row = Math.floor(i / cols);
+      const x = cx + 22 + col * 25;
+      const y = cy + ch - 20 - row * 20;
+      sctx.beginPath();
+      sctx.arc(x, y, 5, 0, Math.PI * 2);
+      sctx.fillStyle = '#4ef0c4';
+      sctx.fill();
+    }
+  } else {
+    const n = Math.min(displayQueue, cap);
+    for (let i = 0; i < n; i++) {
+      const y = cy + ch - 20 - i * 12;
+      sctx.fillStyle = '#7eb6ff';
+      sctx.beginPath();
+      sctx.roundRect(cx + 24, y, cw - 48, 6, 2);
+      sctx.fill();
+    }
+  }
+
+  sctx.fillStyle = '#98a1b6';
+  sctx.font = '500 10px JetBrains Mono';
+  sctx.fillText(showCount + ' / ' + cap, cx + 12, cy - 7);
+
+  sctx.strokeStyle = 'rgba(255,255,255,0.09)';
+  sctx.setLineDash([3, 4]);
+  sctx.beginPath(); sctx.moveTo(68, 118); sctx.lineTo(cx - 4, 118); sctx.stroke();
+  sctx.beginPath(); sctx.moveTo(cx + cw + 4, 118); sctx.lineTo(w - 62, 118); sctx.stroke();
+  sctx.setLineDash([]);
+
+  packets.forEach(p => {
+    sctx.beginPath();
+    sctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+    sctx.fillStyle = p.dropped ? '#ff7a7a' : '#4ef0c4';
+    sctx.fill();
+  });
+}
+
+function stepShape(dt) {
+  const arr = +document.getElementById('arrivalRate').value;
+  const rate = +document.getElementById('shapeRate').value;
+  const cap = +document.getElementById('bucketSize').value;
+  const burst = +document.getElementById('burstiness').value;
+  const algo = document.getElementById('shapeAlgo').value;
+
+  let arrivals = 0;
+  if (Math.random() < arr * dt * (1 + burst * 0.12)) {
+    arrivals = Math.max(1, Math.round(arr * dt + (Math.random() - 0.5) * burst * 0.4));
+  }
+  inputAccum += arrivals;
+
+  for (let i = 0; i < arrivals; i++) {
+    shapeStats.total++;
+    if (algo === 'token' || algo === 'policer') {
+      if (tokens >= 1) {
+        tokens = Math.max(0, tokens - 1);
+        shapeStats.sent++;
+        outputAccum++;
+        packets.push({ x: 78, y: 118 + (Math.random() - 0.5) * 32, vx: 2.4, dropped: false });
+      } else {
+        shapeStats.dropped++;
+        packets.push({ x: 78, y: 118 + (Math.random() - 0.5) * 32, vx: 1.5, dropped: true });
+      }
+    } else {
+      if (queue.length < cap) queue.push(1);
+      else {
+        shapeStats.dropped++;
+        packets.push({ x: 78, y: 118 + (Math.random() - 0.5) * 32, vx: 1.5, dropped: true });
+      }
+    }
+  }
+
+  if (algo === 'token' || algo === 'policer') {
+    tokens = Math.min(cap, tokens + rate * dt);
+  } else {
+    let leak = rate * dt;
+    while (queue.length && leak >= 1) {
+      queue.shift();
+      leak--;
+      shapeStats.sent++;
+      outputAccum++;
+      packets.push({ x: 410, y: 118, vx: 2.4, dropped: false });
+    }
+  }
+
+  packets = packets.filter(p => { p.x += p.vx * 46 * dt; return p.x < shapeCanvas.width + 14; });
+
+  shapeTime += dt;
+  sampleTimer += dt;
+  if (sampleTimer >= 0.5) {
+    const inRate = +(inputAccum / sampleTimer).toFixed(1);
+    const outRate = +(outputAccum / sampleTimer).toFixed(1);
+    shapeHistory.t.push(shapeTime.toFixed(1));
+    shapeHistory.input.push(inRate);
+    shapeHistory.output.push(outRate);
+    shapeHistory.q.push(algo === 'leaky' ? queue.length : Math.floor(tokens));
+    if (shapeHistory.t.length > 24) {
+      shapeHistory.t.shift();
+      shapeHistory.input.shift();
+      shapeHistory.output.shift();
+      shapeHistory.q.shift();
+    }
+    shapeChart.data.labels = shapeHistory.t;
+    shapeChart.data.datasets[0].data = shapeHistory.input;
+    shapeChart.data.datasets[1].data = shapeHistory.output;
+    shapeChart.data.datasets[2].data = shapeHistory.q;
+    shapeChart.update('none');
+    inputAccum = 0;
+    outputAccum = 0;
+    sampleTimer = 0;
+    updateShapeInference();
+  }
+  renderShapeStats();
+  drawFlow();
+}
+
+let lastT = performance.now();
+function loop(now) {
+  if (!shapeRunning) return;
+  const dt = Math.min(0.032, (now - lastT) / 1000);
+  lastT = now;
+  stepShape(dt);
+  shapeAnimId = requestAnimationFrame(loop);
+}
+document.getElementById('shapeStart').onclick = () => {
+  if (!shapeRunning) { shapeRunning = true; lastT = performance.now(); shapeAnimId = requestAnimationFrame(loop); }
+};
+document.getElementById('shapePause').onclick = () => { shapeRunning = false; updateShapeInference(); };
+document.getElementById('shapeReset').onclick = resetShape;
+document.getElementById('shapeAlgo').addEventListener('change', updateShapeInference);
+
+// Congestion Control
+let ccRound = 0, cwnd = 1, ssthresh = 16;
+let ccHist = { r: [], c: [], p: [], t: [] };
+let ccStats = { rounds: 0, losses: 0, peak: 1 };
+let lastPhase = 'SS';
+
+const ccChart = new Chart(document.getElementById('ccChart'), {
+  type: 'line',
+  data: { labels: [], datasets: [{ data: [], borderColor: '#4ef0c4', backgroundColor: 'rgba(78,240,196,0.07)', fill: true, tension: 0.22, pointRadius: 2.5, pointBackgroundColor: [], pointBorderColor: 'rgba(8,9,13,0.9)', pointBorderWidth: 1, borderWidth: 2 }] },
+  options: {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    scales: {
+      y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.035)' }, ticks: { font: { size: 10 }, maxTicksLimit: 5 }, title: { display: true, text: 'cwnd', font: { size: 10 } } },
+      x: { grid: { display: false }, ticks: { font: { size: 10 }, maxTicksLimit: 8 }, title: { display: true, text: 'round', font: { size: 10 } } }
+    },
+    plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(16,19,28,0.96)', titleColor: '#f2f4f8', bodyColor: '#98a1b6', borderColor: 'rgba(255,255,255,0.07)', borderWidth: 1, cornerRadius: 6, padding: 7 } }
+  }
+});
+const tpChart = new Chart(document.getElementById('throughputChart'), {
+  type: 'bar',
+  data: { labels: [], datasets: [{ data: [], backgroundColor: 'rgba(126,182,255,0.6)', borderRadius: 3, borderSkipped: false }] },
+  options: {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    scales: {
+      y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.035)' }, ticks: { font: { size: 10 }, maxTicksLimit: 4 } },
+      x: { grid: { display: false }, ticks: { font: { size: 10 }, maxTicksLimit: 10 } }
+    },
+    plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(16,19,28,0.96)', titleColor: '#f2f4f8', bodyColor: '#98a1b6', borderColor: 'rgba(255,255,255,0.07)', borderWidth: 1, cornerRadius: 6, padding: 7 } }
+  }
+});
+
+function updateCCInference() {
+  const el = document.getElementById('ccInference');
+  const variant = document.getElementById('ccVariant').value;
+  if (ccStats.rounds === 0) {
+    el.innerHTML = 'Idle. Advance rounds or inject a loss to see the window respond.';
+    return;
+  }
+  let msg = '';
+  if (lastPhase === 'SS') msg = '<strong>Slow Start.</strong> Window is doubling each round while below ssthresh.';
+  else if (lastPhase === 'CA') msg = '<strong>Congestion Avoidance.</strong> Window increases linearly; probing for available capacity.';
+  else msg = '<strong>Recovery.</strong> Loss detected. Threshold reduced and window adjusted according to ' + variant + '.';
+  if (cwnd > ssthresh * 0.9 && lastPhase !== 'FR') msg += ' Approaching the slow-start threshold.';
+  el.innerHTML = msg;
+}
+
+function resetCC() {
+  ccRound = 0;
+  cwnd = +document.getElementById('initCwnd').value;
+  ssthresh = +document.getElementById('ssthresh').value;
+  ccHist = { r: [], c: [], p: [], t: [] };
+  ccStats = { rounds: 0, losses: 0, peak: cwnd };
+  lastPhase = 'SS';
+  ccChart.data.labels = []; ccChart.data.datasets[0].data = []; ccChart.data.datasets[0].pointBackgroundColor = [];
+  tpChart.data.labels = []; tpChart.data.datasets[0].data = [];
+  ccChart.update(); tpChart.update();
+  renderCCStats();
+  updateCCInference();
+}
+function renderCCStats() {
+  document.getElementById('ccStats').innerHTML = `
+    <div class="stat"><div class="n">${ccStats.rounds}</div><div class="l">Rounds</div></div>
+    <div class="stat"><div class="n">${cwnd.toFixed(1)}</div><div class="l">cwnd</div></div>
+    <div class="stat"><div class="n">${ccStats.losses}</div><div class="l">Losses</div></div>
+    <div class="stat"><div class="n">${ccStats.peak.toFixed(0)}</div><div class="l">Peak</div></div>`;
+}
+function phaseColor(p) { return p === 'SS' ? '#4ef0c4' : p === 'CA' ? '#7eb6ff' : '#ffb86c'; }
+
+function stepCC(force = false) {
+  const variant = document.getElementById('ccVariant').value;
+  const lp = +document.getElementById('lossProb').value / 100;
+  let phase = cwnd < ssthresh ? 'SS' : 'CA';
+  const lost = force || Math.random() < lp;
+
+  ccHist.r.push(ccRound); ccHist.c.push(cwnd); ccHist.p.push(phase); ccHist.t.push(cwnd);
+
+  if (lost) {
+    ccStats.losses++;
+    if (variant === 'tahoe') { ssthresh = Math.max(2, Math.floor(cwnd / 2)); cwnd = 1; }
+    else if (variant === 'cubic') { ssthresh = Math.max(2, Math.floor(cwnd * 0.7)); cwnd = ssthresh; }
+    else { ssthresh = Math.max(2, Math.floor(cwnd / 2)); cwnd = ssthresh; }
+    phase = 'FR';
+  } else {
+    if (cwnd < ssthresh) { cwnd = Math.min(ssthresh, cwnd * 2); phase = 'SS'; }
+    else { cwnd += (variant === 'cubic' ? 0.35 + cwnd / 25 : 1); phase = 'CA'; }
+  }
+  lastPhase = phase;
+  cwnd = Math.max(1, Math.round(cwnd * 10) / 10);
+  if (cwnd > ccStats.peak) ccStats.peak = cwnd;
+  ccStats.rounds++; ccRound++;
+
+  ccChart.data.labels = ccHist.r;
+  ccChart.data.datasets[0].data = ccHist.c;
+  ccChart.data.datasets[0].pointBackgroundColor = ccHist.p.map(phaseColor);
+  ccChart.update('none');
+  const n = 12;
+  tpChart.data.labels = ccHist.r.slice(-n);
+  tpChart.data.datasets[0].data = ccHist.t.slice(-n);
+  tpChart.update('none');
+  renderCCStats();
+  updateCCInference();
+}
+document.getElementById('ccStart').onclick = () => { for (let i = 0; i < 10; i++) stepCC(); };
+document.getElementById('ccLoss').onclick = () => stepCC(true);
+document.getElementById('ccReset').onclick = resetCC;
+
+resetShape();
+resetCC();
+</script>
+</body>
+</html>
